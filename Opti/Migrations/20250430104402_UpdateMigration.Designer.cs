@@ -12,8 +12,8 @@ using Opti.Data;
 namespace Opti.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250429171039_OptiA")]
-    partial class OptiA
+    [Migration("20250430104402_UpdateMigration")]
+    partial class UpdateMigration
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

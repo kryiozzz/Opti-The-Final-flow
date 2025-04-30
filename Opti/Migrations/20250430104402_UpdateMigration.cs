@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Opti.Migrations
 {
     /// <inheritdoc />
-    public partial class OptiA : Migration
+    public partial class UpdateMigration : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
