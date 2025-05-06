@@ -1,22 +1,25 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Opti.Models; // Change this to your actual namespace where User model is located
+using Opti.Models;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using Opti.Data;
-using BCrypt.Net; // Add this line at the top of your file
-using Microsoft.CodeAnalysis.Scripting;
+using BCrypt.Net;
+using Opti.ViewModel; // Ensure you have this namespace for RegisterViewModel
+
 namespace Opti.Controllers
 {
     public class AccountController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private readonly ILogger<AccountController> _logger;
 
-        public AccountController(ApplicationDbContext context)
+        public AccountController(ApplicationDbContext context, ILogger<AccountController> logger)
         {
             _context = context;
+            _logger = logger;
         }
 
         // GET: /Account/Login
@@ -30,46 +33,72 @@ namespace Opti.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Login(string username, string password, bool rememberMe)
         {
-            if (ModelState.IsValid)
+            if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
             {
-                // Find the user in the database
-                var user = await _context.Users
-                    .FirstOrDefaultAsync(u => u.Username == username);
+                ModelState.AddModelError(string.Empty, "Username and password are required.");
+                return View();
+            }
 
-                // Check if user exists and the password is correct
-                if (user != null && BCrypt.Net.BCrypt.Verify(password, user.PasswordHash))
+            // Find the user in the database
+            var user = await _context.Users
+                .FirstOrDefaultAsync(u => u.Username == username);
+
+            if (user != null)
+            {
+                try
                 {
-                    // Create claims
-                    var claims = new List<Claim>
+                    // Try to verify the password using BCrypt
+                    if (BCrypt.Net.BCrypt.Verify(password, user.PasswordHash))
                     {
-                        new Claim(ClaimTypes.Name, user.Username),
-                        new Claim(ClaimTypes.Email, user.Email),
-                        new Claim(ClaimTypes.Role, user.Role) // Assuming roles are stored in your User table
-                    };
+                        // Create claims for authentication
+                        var claims = new List<Claim>
+                        {
+                            new Claim(ClaimTypes.Name, user.Username),
+                            new Claim(ClaimTypes.Email, user.Email),
+                            new Claim(ClaimTypes.Role, user.Role)
+                        };
 
-                    // Create identity
-                    var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-                    var authProperties = new AuthenticationProperties
+                        // Create identity
+                        var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+                        var authProperties = new AuthenticationProperties
+                        {
+                            IsPersistent = rememberMe, // Remember me option
+                            ExpiresUtc = DateTime.UtcNow.AddMinutes(30) // Session expiry time
+                        };
+
+                        // Sign in the user
+                        await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme,
+                            new ClaimsPrincipal(claimsIdentity), authProperties);
+
+                        // Redirect to the home page or dashboard
+                        return RedirectToAction("Index", "Home");
+                    }
+                    else
                     {
-                        IsPersistent = rememberMe, // Remember me option
-                        ExpiresUtc = DateTime.UtcNow.AddMinutes(30) // Session expiry time
-                    };
-
-                    // Sign in the user
-                    await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme,
-                        new ClaimsPrincipal(claimsIdentity), authProperties);
-
-                    // Redirect to the home page or dashboard
-                    return RedirectToAction("Index", "Home");
+                        ModelState.AddModelError(string.Empty, "Invalid login attempt.");
+                        return View();
+                    }
                 }
-                else
+                catch (SaltParseException ex)
                 {
-                    // If credentials are incorrect, show an error
-                    ModelState.AddModelError(string.Empty, "Invalid login attempt.");
+                    // Handle the SaltParseException and rehash the password
+                    _logger.LogWarning(ex, "SaltParseException occurred for user {Username}. Rehashing password.", username);
+
+                    // Rehash the password and save it in the database
+                    user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(password);
+                    _context.Users.Update(user);
+                    await _context.SaveChangesAsync();
+
+                    // Return a message or log the user out and prompt them to login again
+                    ModelState.AddModelError(string.Empty, "Your password was rehashed and updated. Please login again.");
                     return View();
                 }
             }
-            return View();
+            else
+            {
+                ModelState.AddModelError(string.Empty, "Invalid login attempt.");
+                return View();
+            }
         }
 
         // GET: /Account/Register
@@ -81,38 +110,82 @@ namespace Opti.Controllers
         // POST: /Account/Register
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Register(User model, string confirmPassword)
+        public async Task<IActionResult> Register(RegisterViewModel model)
         {
+            // Debug information
+            _logger.LogInformation("Register method called with model: IsValid={IsValid}", ModelState.IsValid);
+
             if (ModelState.IsValid)
             {
-                // Check if passwords match
-                if (model.PasswordHash != confirmPassword)
-                {
-                    ModelState.AddModelError(string.Empty, "The password and confirmation password do not match.");
-                    return View(model);
-                }
-
                 // Check if username or email already exists
                 var existingUser = await _context.Users
                     .FirstOrDefaultAsync(u => u.Username == model.Username || u.Email == model.Email);
+
                 if (existingUser != null)
                 {
                     ModelState.AddModelError(string.Empty, "Username or Email is already taken.");
                     return View(model);
                 }
 
-                // Hash the password before saving it
-                model.PasswordHash = BCrypt.Net.BCrypt.HashPassword(model.PasswordHash);
+                // Create new user from view model
+                var user = new User
+                {
+                    Username = model.Username,
+                    Email = model.Email,
+                    PasswordHash = BCrypt.Net.BCrypt.HashPassword(model.Password),
+                    Role = "User", // Default role
+                    CreatedAt = DateTime.UtcNow
+                };
 
-                // Add user to the database
-                _context.Users.Add(model);
-                await _context.SaveChangesAsync();
+                // Add the user to the database
+                try
+                {
+                    _logger.LogInformation("Attempting to register new user: {Username}", model.Username);
 
-                // Redirect to login page after successful registration
-                return RedirectToAction("Login");
+                    _context.Users.Add(user);
+                    int result = await _context.SaveChangesAsync();
+
+                    _logger.LogInformation("Registration result: {Result} rows affected", result);
+
+                    if (result > 0)
+                    {
+                        TempData["SuccessMessage"] = "Registration successful! Please log in.";
+                        return RedirectToAction("Login");
+                    }
+                    else
+                    {
+                        ModelState.AddModelError(string.Empty, "No changes were saved to the database.");
+                        return View(model);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // If an error occurs, log and show the error message
+                    _logger.LogError(ex, "Error registering user {Username}: {Message}", model.Username, ex.Message);
+                    ModelState.AddModelError(string.Empty, $"An error occurred while saving: {ex.Message}");
+                    return View(model);
+                }
+            }
+            else
+            {
+                // Log the validation errors
+                foreach (var modelState in ModelState.Values)
+                {
+                    foreach (var error in modelState.Errors)
+                    {
+                        _logger.LogWarning("Validation error: {ErrorMessage}", error.ErrorMessage);
+                    }
+                }
             }
 
             return View(model);
+        }
+
+        // Log out and redirect to login page
+        public async Task<IActionResult> Logout()
+        {
+            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            return RedirectToAction("Login");
         }
     }
 }
