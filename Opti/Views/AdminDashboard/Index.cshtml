@@ -1,0 +1,1100 @@
+﻿@model Opti.Models.AdminDashboardViewModel
+@{
+    ViewData["Title"] = "Admin Dashboard";
+    Layout = null;
+    
+    // Get month names for charts
+    var currentMonth = DateTime.Now.Month;
+    var monthNames = new string[7];
+    for (int i = 6; i >= 0; i--)
+    {
+        var month = (currentMonth - i) <= 0 ? (currentMonth - i + 12) : (currentMonth - i);
+        monthNames[6 - i] = new DateTime(2025, month, 1).ToString("MMM");
+    }
+    
+    var monthNamesJson = System.Text.Json.JsonSerializer.Serialize(monthNames);
+    var monthlySalesJson = System.Text.Json.JsonSerializer.Serialize(Model.MonthlySales);
+    var monthlyCustomerGrowthJson = System.Text.Json.JsonSerializer.Serialize(Model.MonthlyCustomerGrowth);
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Dashboard - Opti</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-dark: #4338ca;
+            --secondary: #10b981;
+            --dark: #1e293b; 
+            --light: #f8fafc;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --success: #22c55e;
+        }
+        
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background-color: #f1f5f9;
+            color: #334155;
+            overflow-x: hidden;
+        }
+        
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        
+        /* Sidebar Styles */
+        .sidebar {
+            width: 280px;
+            height: 100vh;
+            background-color: var(--dark);
+            color: white;
+            position: fixed;
+            top: 0;
+            left: 0;
+            box-shadow: 4px 0 10px rgba(0, 0, 0, 0.05);
+            z-index: 50;
+            transition: all 0.3s ease;
+        }
+        
+        .sidebar-header {
+            padding: 1.5rem;
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .sidebar-header h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin: 0;
+            background: linear-gradient(to right, #818cf8, #38bdf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: 0.5px;
+        }
+        
+        .logo-icon {
+            margin-right: 10px;
+            color: var(--primary);
+            font-size: 1.8rem;
+        }
+        
+        .nav-section {
+            padding: 1.5rem 1rem;
+        }
+        
+        .nav-section h3 {
+            color: #94a3b8;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 1rem;
+            padding: 0 0.5rem;
+            font-weight: 600;
+        }
+        
+        .nav-list {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .nav-item {
+            margin-bottom: 0.5rem;
+            border-radius: 0.5rem;
+            transition: all 0.2s;
+        }
+        
+        .nav-item:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        
+        .nav-item.active {
+            background-color: rgba(79, 70, 229, 0.2);
+        }
+        
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            color: #e2e8f0;
+            text-decoration: none;
+            font-size: 1rem;
+            transition: color 0.3s ease;
+            border-radius: 0.5rem;
+        }
+        
+        .nav-link:hover {
+            color: white;
+        }
+        
+        .nav-link i {
+            margin-right: 10px;
+            font-size: 1.1rem;
+            width: 1.5rem;
+            text-align: center;
+        }
+        
+        .nav-item.active .nav-link {
+            color: white;
+            font-weight: 500;
+        }
+        
+        .user-profile {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            padding: 1rem;
+            background-color: rgba(0, 0, 0, 0.2);
+            display: flex;
+            align-items: center;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: #4f46e5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 12px;
+        }
+        
+        .user-info {
+            flex-grow: 1;
+        }
+        
+        .user-name {
+            color: white;
+            font-weight: 500;
+            margin: 0;
+            font-size: 0.9rem;
+        }
+        
+        .user-role {
+            color: #94a3b8;
+            font-size: 0.8rem;
+            margin: 0;
+        }
+        
+        /* Main content area */
+        .main-content {
+            margin-left: 280px;
+            padding: 2rem;
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin: 0;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .notification-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            width: 18px;
+            height: 18px;
+            background-color: var(--danger);
+            border-radius: 50%;
+            font-size: 0.6rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+
+        /* Stats cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background-color: white;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-title {
+            font-size: 0.875rem;
+            color: #64748b;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-change {
+            display: flex;
+            align-items: center;
+            font-size: 0.75rem;
+            gap: 4px;
+        }
+
+        .stat-increase {
+            color: var(--success);
+        }
+
+        .stat-decrease {
+            color: var(--danger);
+        }
+
+        /* Charts section */
+        .chart-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .chart-container {
+            background-color: white;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            height: 300px; /* Fixed height for all charts */
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .chart-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin: 0;
+        }
+
+        .chart-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        /* Tables */
+        .table-container {
+            background-color: white;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+            overflow-x: auto;
+        }
+
+        .table-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .table-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin: 0;
+        }
+
+        .table-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+
+        .data-table th {
+            text-align: left;
+            padding: 0.75rem 1rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .data-table td {
+            padding: 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 0.875rem;
+        }
+
+        .data-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .data-table tr:hover {
+            background-color: #f8fafc;
+        }
+
+        /* Badges */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.25rem 0.5rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            margin-right: 0.5rem;
+        }
+
+        .badge-success {
+            background-color: rgba(34, 197, 94, 0.1);
+            color: var(--success);
+        }
+
+        .badge-warning {
+            background-color: rgba(245, 158, 11, 0.1);
+            color: var(--warning);
+        }
+
+        .badge-danger {
+            background-color: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+        }
+
+        .badge-info {
+            background-color: rgba(59, 130, 246, 0.1);
+            color: #3b82f6;
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-dark);
+        }
+
+        .btn-outline {
+            background-color: transparent;
+            color: #64748b;
+            border: 1px solid #cbd5e1;
+        }
+
+        .btn-outline:hover {
+            border-color: #94a3b8;
+            background-color: #f8fafc;
+        }
+
+        .btn-sm {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+        }
+
+        .btn-icon {
+            padding: 0.5rem;
+            border-radius: 0.5rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #f1f5f9;
+            color: #64748b;
+            border: 1px solid #e2e8f0;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .btn-icon:hover {
+            background-color: #e2e8f0;
+            color: #334155;
+        }
+
+        /* Utilities */
+        .flex {
+            display: flex;
+        }
+
+        .justify-between {
+            justify-content: space-between;
+        }
+
+        .items-center {
+            align-items: center;
+        }
+
+        .gap-4 {
+            gap: 1rem;
+        }
+
+        /* Responsive */
+        media (max-width: 1200px) {
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        media (max-width: 992px) {
+            .chart-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <i class="fas fa-gauge-high logo-icon"></i>
+            <h2>Admin Dashboard</h2>
+        </div>
+
+        <div class="nav-section">
+            <h3>MAIN</h3>
+            <ul class="nav-list">
+                <li class="nav-item active">
+                    <a href="/AdminDashboard" class="nav-link">
+                        <i class="fas fa-chart-pie"></i>
+                        Dashboard
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="/AdminDashboard/Users" class="nav-link">
+                        <i class="fas fa-users"></i>
+                        Users
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="/AdminDashboard/Machines" class="nav-link">
+                        <i class="fas fa-cogs"></i>
+                        Machines
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="/AdminDashboard/Products" class="nav-link">
+                        <i class="fas fa-box"></i>
+                        Products
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="/AdminDashboard/ProductionOrders" class="nav-link">
+                        <i class="fas fa-clipboard-list"></i>
+                        Production Orders
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="/AdminDashboard/CustomerOrders" class="nav-link">
+                        <i class="fas fa-shopping-cart"></i>
+                        Customer Orders
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+        <div class="nav-section">
+            <h3>SYSTEM</h3>
+            <ul class="nav-list">
+                <li class="nav-item">
+                    <a href="/AdminDashboard/Reports" class="nav-link">
+                        <i class="fas fa-chart-line"></i>
+                        Reports
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i class="fas fa-bell"></i>
+                        Notifications
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="/AdminDashboard/Settings" class="nav-link">
+                        <i class="fas fa-cog"></i>
+                        Settings
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i class="fas fa-database"></i>
+                        Backup
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="/AdminDashboard/Logs" class="nav-link">
+                        <i class="fas fa-history"></i>
+                        Logs
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="/Account/Logout" class="nav-link">
+                        <i class="fas fa-sign-out-alt"></i>
+                        Logout
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Header -->
+        <div class="header">
+            <h1>Admin Dashboard</h1>
+            <div class="header-actions">
+                <button class="btn-icon">
+                    <i class="fas fa-search"></i>
+                </button>
+                <button class="btn-icon">
+                    <i class="fas fa-bell"></i>
+                    <span class="notification-badge">3</span>
+                </button>
+                <button class="btn-icon">
+                    <i class="fas fa-envelope"></i>
+                    <span class="notification-badge">5</span>
+                </button>
+                <button class="btn-outline">
+                    <i class="fas fa-calendar"></i>
+                    Today
+                </button>
+            </div>
+        </div>
+
+        <!-- Stats Section -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-title">
+                    <i class="fas fa-dollar-sign" style="color: #3b82f6;"></i>
+                    Total Revenue
+                </div>
+                <div class="stat-value">$@Model.TotalRevenue.ToString("N2")</div>
+                <div class="stat-change stat-increase">
+                    <i class="fas fa-arrow-up"></i>
+                    12% from last month
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-title">
+                    <i class="fas fa-users" style="color: #10b981;"></i>
+                    New Users
+                </div>
+                <div class="stat-value">@Model.NewCustomers</div>
+                <div class="stat-change stat-increase">
+                    <i class="fas fa-arrow-up"></i>
+                    @Model.GrowthRate.ToString("0.0")% growth rate
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-title">
+                    <i class="fas fa-cogs" style="color: #f59e0b;"></i>
+                    Active Machines
+                </div>
+                <div class="stat-value">@Model.OperationalMachines</div>
+                <div class="stat-change @(Model.MachinesUnderMaintenance > 0 ? "stat-decrease" : "stat-increase")">
+                    <i class="fas @(Model.MachinesUnderMaintenance > 0 ? "fa-arrow-down" : "fa-arrow-up")"></i>
+                    @Model.MachinesUnderMaintenance under maintenance
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-title">
+                    <i class="fas fa-clipboard-list" style="color: #6366f1;"></i>
+                    Pending Orders
+                </div>
+                <div class="stat-value">@Model.PendingOrders</div>
+                <div class="stat-change stat-increase">
+                    <i class="fas fa-spinner"></i>
+                    @Model.InProgressOrders in progress
+                </div>
+            </div>
+        </div>
+
+        <!-- Chart Section -->
+        <div class="chart-grid">
+            <div class="chart-container">
+                <div class="chart-header">
+                    <h3 class="chart-title">Sales Overview</h3>
+                    <div class="chart-actions">
+                        <button class="btn-outline btn-sm">
+                            <i class="fas fa-filter"></i>
+                            Filter
+                        </button>
+                        <button class="btn-icon">
+                            <i class="fas fa-ellipsis-v"></i>
+                        </button>
+                    </div>
+                </div>
+                <canvas id="salesChart"></canvas>
+            </div>
+            
+            <div class="chart-container">
+                <div class="chart-header">
+                    <h3 class="chart-title">User Growth</h3>
+                    <div class="chart-actions">
+                        <button class="btn-outline btn-sm">
+                            <i class="fas fa-filter"></i>
+                            Filter
+                        </button>
+                        <button class="btn-icon">
+                            <i class="fas fa-ellipsis-v"></i>
+                        </button>
+                    </div>
+                </div>
+                <canvas id="customersChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Machines Overview -->
+        <div class="chart-container" style="margin-bottom: 2rem; height: 250px;">
+            <div class="chart-header">
+                <h3 class="chart-title">Machine Status</h3>
+                <div class="chart-actions">
+                    <button class="btn-outline btn-sm">
+                        <i class="fas fa-filter"></i>
+                        Filter
+                    </button>
+                    <button class="btn-icon">
+                        <i class="fas fa-ellipsis-v"></i>
+                    </button>
+                </div>
+            </div>
+            <canvas id="machinesChart"></canvas>
+        </div>
+
+        <!-- Recent Orders Table -->
+        <div class="table-container">
+            <div class="table-header">
+                <h3 class="table-title">Recent Orders</h3>
+                <div class="table-actions">
+                    <button class="btn-outline btn-sm">
+                        <i class="fas fa-filter"></i>
+                        Filter
+                    </button>
+                    <a href="/ProductionOrders/Create" class="btn-primary btn-sm">
+                        <i class="fas fa-plus"></i>
+                        New Order
+                    </a>
+                </div>
+            </div>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Order ID</th>
+                        <th>Customer</th>
+                        <th>Product</th>
+                        <th>Amount</th>
+                        <th>Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.RecentOrders != null && Model.RecentOrders.Any())
+                    {
+                        foreach (var order in Model.RecentOrders)
+                        {
+                            <tr>
+                                <td>#@order.OrderId</td>
+                                <td>@(order.User != null ? order.User.Username : "Unknown")</td>
+                                <td>@(order.Product != null ? order.Product.ProductName : "Unknown Product")</td>
+                                <td>$@order.TotalAmount.ToString("N2")</td>
+                                <td>@order.OrderDate.ToShortDateString()</td>
+                                <td>
+                                    <div class="flex gap-4">
+                                        <a href="/CustomerOrders/Details/@order.OrderId" class="btn-icon">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a href="/CustomerOrders/Edit/@order.OrderId" class="btn-icon">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="6" class="text-center">No recent orders found</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+            <div style="text-align: center; margin-top: 1rem;">
+                <a href="/AdminDashboard/CustomerOrders" class="btn btn-outline">View All Orders</a>
+            </div>
+        </div>
+
+        <!-- System Status & Machine Type Summary -->
+        <div class="chart-grid">
+            <!-- System Status -->
+            <div class="table-container">
+                <div class="table-header">
+                    <h3 class="table-title">System Status</h3>
+                    <div class="table-actions">
+                        <button class="btn-icon">
+                            <i class="fas fa-sync"></i>
+                        </button>
+                    </div>
+                </div>
+                <table class="data-table">
+                    <tbody>
+                        <tr>
+                            <td width="60%">Database Connection</td>
+                            <td><span class="badge badge-success">Operational</span></td>
+                        </tr>
+                        <tr>
+                            <td>API Service</td>
+                            <td><span class="badge badge-success">Operational</span></td>
+                        </tr>
+                        <tr>
+                            <td>Payment Gateway</td>
+                            <td><span class="badge badge-success">Operational</span></td>
+                        </tr>
+                        <tr>
+                            <td>Backup Service</td>
+                            <td><span class="badge badge-warning">Degraded</span></td>
+                        </tr>
+                        <tr>
+                            <td>Email Service</td>
+                            <td><span class="badge badge-success">Operational</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Machine Type Breakdown -->
+            <div class="table-container">
+                <div class="table-header">
+                    <h3 class="table-title">Machine Type Breakdown</h3>
+                    <div class="table-actions">
+                        <a href="/AdminDashboard/Machines" class="btn-outline btn-sm">View All</a>
+                    </div>
+                </div>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Machine Type</th>
+                            <th>Total</th>
+                            <th>Operational</th>
+                            <th>Under Maintenance</th>
+                            <th>Offline</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.MachineTypeSummary != null && Model.MachineTypeSummary.Any())
+                        {
+                            foreach (var machineType in Model.MachineTypeSummary)
+                            {
+                                <tr>
+                                    <td>@machineType.MachineType</td>
+                                    <td>@machineType.Total</td>
+                                    <td>@machineType.Operational</td>
+                                    <td>@machineType.UnderMaintenance</td>
+                                    <td>@machineType.Offline</td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="5" class="text-center">No machine data available</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chart.js Scripts -->
+    <script>
+        // Chart data from the model
+        const monthNames = @Html.Raw(monthNamesJson);
+        const monthlySales = @Html.Raw(monthlySalesJson);
+        const monthlyCustomerGrowth = @Html.Raw(monthlyCustomerGrowthJson);
+        
+        // Sales Chart - FIXED
+        const salesCtx = document.getElementById('salesChart').getContext('2d');
+        new Chart(salesCtx, {
+          type: 'line',
+          data: {
+            labels: monthNames,
+            datasets: [{
+              label: 'Sales ($)',
+              data: monthlySales,
+              backgroundColor: 'rgba(59, 130, 246, 0.2)',
+              borderColor: 'rgba(59, 130, 246, 1)',
+              borderWidth: 2,
+              tension: 0.4,
+              fill: true,
+              pointBackgroundColor: 'rgba(59, 130, 246, 1)',
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            aspectRatio: 2,  // Wider than tall
+            plugins: {
+              legend: {
+                display: false
+              }
+            },
+            scales: {
+              x: {
+                grid: {
+                  display: false
+                }
+              },
+              y: {
+                beginAtZero: true,
+                grid: {
+                  color: 'rgba(226, 232, 240, 0.5)'
+                },
+                // Set a fixed scale to prevent extreme heights
+                suggestedMax: Math.max(...monthlySales) * 1.2 || 1000,
+                ticks: {
+                  callback: function(value) {
+                    return '$' + value.toLocaleString();
+                  }
+                }
+              }
+            }
+          }
+        });
+
+        // Customers Chart - FIXED
+        const customersCtx = document.getElementById('customersChart').getContext('2d');
+        new Chart(customersCtx, {
+          type: 'bar',
+          data: {
+            labels: monthNames,
+            datasets: [{
+              label: 'New Customers',
+              data: monthlyCustomerGrowth,
+              backgroundColor: 'rgba(16, 185, 129, 0.6)', // Emerald-500
+              borderColor: 'rgba(16, 185, 129, 1)',
+              borderWidth: 1,
+              borderRadius: 6,
+              maxBarThickness: 45
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            aspectRatio: 2,  // Wider than tall
+            plugins: {
+              legend: {
+                display: false
+              }
+            },
+            scales: {
+              x: {
+                grid: {
+                  display: false
+                }
+              },
+              y: {
+                beginAtZero: true,
+                grid: {
+                  color: 'rgba(226, 232, 240, 0.5)'
+                },
+                // These settings control the Y-axis height
+                suggestedMin: 0,
+                suggestedMax: Math.max(...monthlyCustomerGrowth) * 1.2 || 10,
+                ticks: {
+                  precision: 0,
+                  stepSize: 1
+                }
+              }
+            }
+          }
+        });
+
+        // Machines Maintenance Chart - FIXED
+        const machinesCtx = document.getElementById('machinesChart').getContext('2d');
+        new Chart(machinesCtx, {
+          type: 'doughnut',
+          data: {
+            labels: ['Operational', 'Under Maintenance', 'Offline'],
+            datasets: [{
+              label: 'Machines',
+              data: [@Model.OperationalMachines, @Model.MachinesUnderMaintenance, @Model.OfflineMachines], 
+              backgroundColor: [
+                'rgba(34, 197, 94, 0.7)',   // Green
+                'rgba(245, 158, 11, 0.7)',  // Yellow
+                'rgba(239, 68, 68, 0.7)'    // Red
+              ],
+              borderColor: [
+                'rgba(34, 197, 94, 1)',
+                'rgba(245, 158, 11, 1)',
+                'rgba(239, 68, 68, 1)'
+              ],
+              borderWidth: 2,
+              hoverOffset: 15
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            aspectRatio: 2.5,  // Control the width-to-height ratio
+            cutout: '70%',
+            plugins: {
+              legend: {
+                position: 'right',  // Move legend to the right for better space usage
+                align: 'center',
+                labels: {
+                  padding: 15,
+                  usePointStyle: true,
+                  pointStyle: 'circle'
+                }
+              }
+            }
+          }
+        });
+
+        // Mobile sidebar toggle functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const menuButton = document.createElement('button');
+            menuButton.classList.add('menu-toggle');
+            menuButton.innerHTML = '<i class="fas fa-bars"></i>';
+            menuButton.style.position = 'fixed';
+            menuButton.style.top = '1rem';
+            menuButton.style.left = '1rem';
+            menuButton.style.zIndex = '100';
+            menuButton.style.backgroundColor = 'var(--primary)';
+            menuButton.style.color = 'white';
+            menuButton.style.width = '40px';
+            menuButton.style.height = '40px';
+            menuButton.style.borderRadius = '0.5rem';
+            menuButton.style.display = 'none';
+            menuButton.style.alignItems = 'center';
+            menuButton.style.justifyContent = 'center';
+            menuButton.style.border = 'none';
+            menuButton.style.cursor = 'pointer';
+            document.body.appendChild(menuButton);
+
+            const sidebar = document.querySelector('.sidebar');
+            const mainContent = document.querySelector('.main-content');
+
+            function checkWindowSize() {
+                if (window.innerWidth <= 768) {
+                    menuButton.style.display = 'flex';
+                    sidebar.style.transform = 'translateX(-100%)';
+                    mainContent.style.marginLeft = '0';
+                } else {
+                    menuButton.style.display = 'none';
+                    sidebar.style.transform = 'translateX(0)';
+                    mainContent.style.marginLeft = '280px';
+                }
+            }
+
+            // Initial check
+            checkWindowSize();
+
+            // Event listener for window resize
+            window.addEventListener('resize', checkWindowSize);
+
+            // Event listener for menu button click
+            menuButton.addEventListener('click', function() {
+                if (sidebar.style.transform === 'translateX(0px)') {
+                    sidebar.style.transform = 'translateX(-100%)';
+                } else {
+                    sidebar.style.transform = 'translateX(0)';
+                }
+            });
+        });
+    </script>
+</body>
+</html>

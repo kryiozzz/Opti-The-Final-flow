@@ -70,8 +70,19 @@ namespace Opti.Controllers
                         await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme,
                             new ClaimsPrincipal(claimsIdentity), authProperties);
 
-                        // Redirect to the home page or dashboard
-                        return RedirectToAction("Index", "Home");
+                        // Redirect based on user role
+                        if (user.Role == "Admin")
+                        {
+                            return RedirectToAction("Index", "AdminDashboard");
+                        }
+                        else if (user.Role == "Worker")
+                        {
+                            return RedirectToAction("Index", "WorkerDashboard");
+                        }
+                        else
+                        {
+                            return RedirectToAction("Index", "Home"); // Default redirection
+                        }
                     }
                     else
                     {
@@ -112,12 +123,8 @@ namespace Opti.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Register(RegisterViewModel model)
         {
-            // Debug information
-            _logger.LogInformation("Register method called with model: IsValid={IsValid}", ModelState.IsValid);
-
             if (ModelState.IsValid)
             {
-                // Check if username or email already exists
                 var existingUser = await _context.Users
                     .FirstOrDefaultAsync(u => u.Username == model.Username || u.Email == model.Email);
 
@@ -127,25 +134,19 @@ namespace Opti.Controllers
                     return View(model);
                 }
 
-                // Create new user from view model
                 var user = new User
                 {
                     Username = model.Username,
                     Email = model.Email,
                     PasswordHash = BCrypt.Net.BCrypt.HashPassword(model.Password),
-                    Role = "User", // Default role
+                    Role = "Worker", // Default role is Worker, can be changed to Admin when needed
                     CreatedAt = DateTime.UtcNow
                 };
 
-                // Add the user to the database
                 try
                 {
-                    _logger.LogInformation("Attempting to register new user: {Username}", model.Username);
-
                     _context.Users.Add(user);
                     int result = await _context.SaveChangesAsync();
-
-                    _logger.LogInformation("Registration result: {Result} rows affected", result);
 
                     if (result > 0)
                     {
@@ -160,21 +161,9 @@ namespace Opti.Controllers
                 }
                 catch (Exception ex)
                 {
-                    // If an error occurs, log and show the error message
                     _logger.LogError(ex, "Error registering user {Username}: {Message}", model.Username, ex.Message);
                     ModelState.AddModelError(string.Empty, $"An error occurred while saving: {ex.Message}");
                     return View(model);
-                }
-            }
-            else
-            {
-                // Log the validation errors
-                foreach (var modelState in ModelState.Values)
-                {
-                    foreach (var error in modelState.Errors)
-                    {
-                        _logger.LogWarning("Validation error: {ErrorMessage}", error.ErrorMessage);
-                    }
                 }
             }
 
