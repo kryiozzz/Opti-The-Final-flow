@@ -1,0 +1,534 @@
+﻿@model IEnumerable<Opti.Models.Machine>
+@{
+    ViewData["Title"] = "Machines";
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Worker Machines</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="~/css/worker_dashboard.css">
+    <link rel="stylesheet" href="~/css/workermodal.css">
+</head>
+
+<body>
+    <!-- Include the Worker Sidebar -->
+    @await Html.PartialAsync("_WorkerSidebar")
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="page-header">
+            <h1 class="page-title">Machines</h1>
+            <div class="header-actions">
+                <button id="refreshMachines" class="btn btn-outline">
+                    <i class="fas fa-sync-alt"></i>
+                    Refresh
+                </button>
+            </div>
+        </div>
+
+        <!-- Machines Overview Stats -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-title">
+                    <i class="fas fa-cogs" style="color: #4f46e5;"></i>
+                    Operational Machines
+                </div>
+                <div class="stat-value">@Model.Count(m => m.Status == "Operational")</div>
+                <div class="stat-change stat-increase">
+                    <i class="fas fa-check-circle"></i>
+                    Ready for Production
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-title">
+                    <i class="fas fa-tools" style="color: #ef4444;"></i>
+                    Under Maintenance
+                </div>
+                <div class="stat-value">@Model.Count(m => m.Status == "Under Maintenance")</div>
+                <div class="stat-change stat-neutral">
+                    <i class="fas fa-wrench"></i>
+                    Currently Being Fixed
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-title">
+                    <i class="fas fa-exclamation-triangle" style="color: #f59e0b;"></i>
+                    Offline Machines
+                </div>
+                <div class="stat-value">@Model.Count(m => m.Status == "Offline")</div>
+                <div class="stat-change stat-decrease">
+                    <i class="fas fa-times-circle"></i>
+                    Needs Attention
+                </div>
+            </div>
+        </div>
+
+        <!-- Machine List Section -->
+        <div class="table-container">
+            <div class="chart-header">
+                <h2 class="chart-title">
+                    <i class="fas fa-cogs" style="color: #4f46e5;"></i>
+                    Machine List
+                </h2>
+                <div class="chart-actions">
+                    <div class="filter-group">
+                        <select id="machineStatusFilter" class="filter-select">
+                            <option value="all" selected>All Statuses</option>
+                            <option value="operational">Operational</option>
+                            <option value="undermaintenance">Under Maintenance</option>
+                            <option value="offline">Offline</option>
+                        </select>
+                        <select id="machineTypeFilter" class="filter-select">
+                            <option value="all" selected>All Types</option>
+                            @foreach (var type in Model.Select(m => m.MachineType).Distinct())
+                            {
+                                <option value="@type.ToLower().Replace(" ", "")">@type</option>
+                            }
+                        </select>
+                        <button id="applyMachineFilter" class="btn btn-outline">
+                            <i class="fas fa-filter"></i>
+                            Filter
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <table class="data-table" id="machinesTable">
+                <thead>
+                    <tr>
+                        <th>Machine ID</th>
+                        <th>Machine Name</th>
+                        <th>Type</th>
+                        <th>Status</th>
+                        <th>Last Maintenance</th>
+                        <th>Efficiency</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model != null && Model.Any())
+                    {
+                        @foreach (var machine in Model)
+                        {
+                            <tr data-status="@machine.Status.ToLower().Replace(" ", "")" data-type="@machine.MachineType.ToLower().Replace(" ", "")">
+                                <td>#@machine.MachineId</td>
+                                <td>@machine.MachineName</td>
+                                <td>@machine.MachineType</td>
+                                <td>
+                                    @if (machine.Status == "Operational")
+                                    {
+                                        <span class="badge badge-success">
+                                            <i class="fas fa-check-circle"></i>
+                                            Operational
+                                        </span>
+                                    }
+                                    else if (machine.Status == "Under Maintenance")
+                                    {
+                                        <span class="badge badge-warning">
+                                            <i class="fas fa-tools"></i>
+                                            Maintenance
+                                        </span>
+                                    }
+                                    else if (machine.Status == "Offline")
+                                    {
+                                        <span class="badge badge-danger">
+                                            <i class="fas fa-times-circle"></i>
+                                            Offline
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge badge-neutral">@machine.Status</span>
+                                    }
+                                </td>
+                                <td>@machine.LastMaintenanceDate.ToShortDateString()</td>
+                                <td>@(new Random().Next(70, 95))%</td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <button class="btn-icon view-machine" data-id="@machine.MachineId">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        @if (machine.Status == "Operational")
+                                        {
+                                            <button class="btn-icon mark-maintenance" data-id="@machine.MachineId" title="Mark for Maintenance">
+                                                <i class="fas fa-tools"></i>
+                                            </button>
+                                        }
+                                        else if (machine.Status == "Under Maintenance")
+                                        {
+                                            <button class="btn-icon mark-operational" data-id="@machine.MachineId" title="Mark as Operational">
+                                                <i class="fas fa-check"></i>
+                                            </button>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="7" class="text-center">No machines found in the database.</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- View Machine Modal -->
+    <div id="viewMachineModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Machine Details</h2>
+                <button class="close-modal">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="machine-details">
+                    <div class="machine-image">
+                        <img id="machineImage" src="" alt="Machine Image">
+                    </div>
+                    <div class="machine-info">
+                        <h3 id="machineName"></h3>
+                        <p><strong>ID:</strong> <span id="machineId"></span></p>
+                        <p><strong>Type:</strong> <span id="machineType"></span></p>
+                        <p><strong>Status:</strong> <span id="machineStatus"></span></p>
+                        <p><strong>Last Maintenance:</strong> <span id="lastMaintenance"></span></p>
+                        <p><strong>Efficiency:</strong> <span id="efficiency"></span></p>
+                    </div>
+                </div>
+                <div class="maintenance-history">
+                    <h3>Maintenance History</h3>
+                    <table class="modal-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Action</th>
+                                <th>Performed By</th>
+                            </tr>
+                        </thead>
+                        <tbody id="maintenanceHistory">
+                            <!-- Will be populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline close-modal">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Maintenance Modal -->
+    <div id="maintenanceModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Schedule Maintenance</h2>
+                <button class="close-modal">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="maintenanceForm">
+                    <input type="hidden" id="maintenanceMachineId">
+                    <div class="form-group">
+                        <label for="maintenanceReason">Reason for Maintenance</label>
+                        <select id="maintenanceReason" class="form-control" required>
+                            <option value="">Select Reason</option>
+                            <option value="Regular Maintenance">Regular Maintenance</option>
+                            <option value="Malfunction">Malfunction</option>
+                            <option value="Preventive Maintenance">Preventive Maintenance</option>
+                            <option value="Part Replacement">Part Replacement</option>
+                            <option value="Calibration">Calibration</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="maintenanceDescription">Description</label>
+                        <textarea id="maintenanceDescription" class="form-control" rows="3" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="estimatedCompletion">Estimated Completion</label>
+                        <input type="date" id="estimatedCompletion" class="form-control" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline close-modal">Cancel</button>
+                <button class="btn btn-primary" id="submitMaintenance">Submit</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Mobile sidebar functionality (from previous code)
+            const menuButton = document.querySelector('.menu-toggle');
+            const sidebar = document.querySelector('.sidebar');
+            const mainContent = document.querySelector('.main-content');
+
+            function checkWindowSize() {
+                if (window.innerWidth <= 768) {
+                    sidebar.style.transform = 'translateX(-100%)';
+                    mainContent.style.marginLeft = '0';
+                    menuButton.style.display = 'flex';
+                } else {
+                    sidebar.style.transform = 'translateX(0)';
+                    mainContent.style.marginLeft = '280px';
+                    menuButton.style.display = 'none';
+                }
+            }
+
+            // Initial check
+            checkWindowSize();
+
+            // Event listener for window resize
+            window.addEventListener('resize', checkWindowSize);
+
+            // Event listener for menu button click
+            menuButton.addEventListener('click', function() {
+                if (sidebar.style.transform === 'translateX(0px)') {
+                    sidebar.style.transform = 'translateX(-100%)';
+                } else {
+                    sidebar.style.transform = 'translateX(0)';
+                }
+            });
+
+            // Modal functionality
+            const modals = document.querySelectorAll('.modal');
+            const closeButtons = document.querySelectorAll('.close-modal');
+
+            // Function to open a specific modal
+            function openModal(modalId) {
+                document.getElementById(modalId).style.display = 'flex';
+            }
+
+            // Function to close all modals
+            function closeAllModals() {
+                modals.forEach(modal => {
+                    modal.style.display = 'none';
+                });
+            }
+
+            // Add event listeners to close buttons
+            closeButtons.forEach(button => {
+                button.addEventListener('click', closeAllModals);
+            });
+
+            // Close modal when clicking outside
+            window.addEventListener('click', function(event) {
+                modals.forEach(modal => {
+                    if (event.target === modal) {
+                        modal.style.display = 'none';
+                    }
+                });
+            });
+
+            // View Machine Button Click
+            const viewButtons = document.querySelectorAll('.view-machine');
+            viewButtons.forEach(button => {
+                button.addEventListener('click', async function() {
+                    const machineId = this.getAttribute('data-id');
+
+                    try {
+                        const response = await fetch(`/Machines/GetMachineDetails?machineId=${machineId}`);
+                        if (!response.ok) {
+                            throw new Error('Failed to fetch machine details');
+                        }
+
+                        const result = await response.json();
+
+                        if (result.success) {
+                            document.getElementById('machineId').textContent = '#' + result.machineId;
+                            document.getElementById('machineName').textContent = result.machineName;
+                            document.getElementById('machineType').textContent = result.machineType;
+                            document.getElementById('machineStatus').textContent = result.status;
+                            document.getElementById('lastMaintenance').textContent = result.lastMaintenance;
+                            document.getElementById('efficiency').textContent = result.efficiency;
+
+                            // Set the actual image path from the database
+                            document.getElementById('machineImage').src = result.imagePath;
+
+                            // Populate maintenance history
+                            const historyBody = document.getElementById('maintenanceHistory');
+                            historyBody.innerHTML = result.maintenanceHistory.map(item => `
+                                <tr>
+                                    <td>${item.date}</td>
+                                    <td>${item.action}</td>
+                                    <td>${item.performedBy}</td>
+                                </tr>
+                            `).join('');
+
+                            openModal('viewMachineModal');
+                        } else {
+                            alert('Failed to load machine details: ' + result.message);
+                        }
+                    } catch (error) {
+                        console.error('Error:', error);
+                        alert('Failed to load machine details. Please try again.');
+                    }
+                });
+            });
+
+            // Mark for Maintenance Button Click
+            const maintenanceButtons = document.querySelectorAll('.mark-maintenance');
+            maintenanceButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const machineId = this.getAttribute('data-id');
+                    document.getElementById('maintenanceMachineId').value = machineId;
+
+                    // Set today as the default date for the datepicker
+                    const today = new Date();
+                    const nextWeek = new Date(today.setDate(today.getDate() + 7));
+                    document.getElementById('estimatedCompletion').valueAsDate = nextWeek;
+
+                    openModal('maintenanceModal');
+                });
+            });
+
+            // Mark as Operational Button Click
+            const operationalButtons = document.querySelectorAll('.mark-operational');
+            operationalButtons.forEach(button => {
+                button.addEventListener('click', async function() {
+                    const machineId = this.getAttribute('data-id');
+
+                    if (confirm('Are you sure you want to mark this machine as operational?')) {
+                        try {
+                            const formData = new FormData();
+                            formData.append('machineId', machineId);
+
+                            const response = await fetch('/Machines/MarkAsOperational', {
+                                method: 'POST',
+                                body: formData
+                            });
+
+                            if (!response.ok) {
+                                throw new Error('Failed to mark machine as operational');
+                            }
+
+                            const result = await response.json();
+
+                            if (result.success) {
+                                alert('Machine marked as operational successfully!');
+                                window.location.reload();
+                            } else {
+                                alert('Failed to mark machine as operational: ' + result.message);
+                            }
+                        } catch (error) {
+                            console.error('Error:', error);
+                            alert('Failed to mark machine as operational. Please try again.');
+                        }
+                    }
+                });
+            });
+
+            // Submit Maintenance Form
+            document.getElementById('submitMaintenance').addEventListener('click', async function() {
+                const form = document.getElementById('maintenanceForm');
+                const machineId = document.getElementById('maintenanceMachineId').value;
+                const reason = document.getElementById('maintenanceReason').value;
+                const description = document.getElementById('maintenanceDescription').value;
+                const estimatedCompletion = document.getElementById('estimatedCompletion').value;
+
+                if (!reason || !description || !estimatedCompletion) {
+                    alert('Please fill in all required fields.');
+                    return;
+                }
+
+                try {
+                    const formData = new FormData();
+                    formData.append('machineId', machineId);
+                    formData.append('reason', reason);
+                    formData.append('description', description);
+                    formData.append('estimatedCompletion', estimatedCompletion);
+
+                    const response = await fetch('/Machines/MarkForMaintenance', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    if (!response.ok) {
+                        throw new Error('Failed to schedule maintenance');
+                    }
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        alert('Maintenance scheduled successfully!');
+                        form.reset();
+                        closeAllModals();
+                        window.location.reload();
+                    } else {
+                        alert('Failed to schedule maintenance: ' + result.message);
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('Failed to schedule maintenance. Please try again.');
+                }
+            });
+
+            // Filter Machines
+            document.getElementById('applyMachineFilter').addEventListener('click', function() {
+                const statusFilter = document.getElementById('machineStatusFilter').value;
+                const typeFilter = document.getElementById('machineTypeFilter').value;
+
+                const rows = document.querySelectorAll('#machinesTable tbody tr');
+
+                rows.forEach(row => {
+                    const rowStatus = row.getAttribute('data-status');
+                    const rowType = row.getAttribute('data-type');
+
+                    const statusMatch = statusFilter === 'all' || rowStatus === statusFilter;
+                    const typeMatch = typeFilter === 'all' || rowType === typeFilter;
+
+                    if (statusMatch && typeMatch) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+            });
+
+            // Function to update the stats at the top of the page
+            function updateStats() {
+                const rows = document.querySelectorAll('#machinesTable tbody tr');
+                let operational = 0;
+                let maintenance = 0;
+                let offline = 0;
+
+                rows.forEach(row => {
+                    const statusText = row.cells[3].textContent.trim();
+                    if (statusText.includes('Operational')) {
+                        operational++;
+                    } else if (statusText.includes('Maintenance')) {
+                        maintenance++;
+                    } else if (statusText.includes('Offline')) {
+                        offline++;
+                    }
+                });
+
+                const statsElements = document.querySelectorAll('.stat-value');
+                statsElements[0].textContent = operational;
+                statsElements[1].textContent = maintenance;
+                statsElements[2].textContent = offline;
+            }
+
+            // Refresh button
+            document.getElementById('refreshMachines').addEventListener('click', function() {
+                window.location.reload();
+            });
+        });
+    </script>
+
+    <style>
+        /* Additional styles for modals and forms */
+    </style>
+</body>
+</html>

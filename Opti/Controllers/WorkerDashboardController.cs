@@ -19,20 +19,31 @@ namespace Opti.Controllers
 
         public async Task<IActionResult> Index()
         {
+            // Create view model for dashboard
             var viewModel = new WorkerDashboardViewModel
             {
-                // Count number of machines with different statuses
-                MachinesOperational = await _context.Machines.CountAsync(m => m.Status == "Operational"),
-                MachinesUnderMaintenance = await _context.Machines.CountAsync(m => m.Status == "Under Maintenance"),
+                // Get operational machines count
+                MachinesOperational = await _context.Machines
+                    .CountAsync(m => m.Status == "Operational"),
 
-                // Get production order counts
-                ProductionOrdersCompleted = await _context.ProductionOrders.CountAsync(o => o.Status == "Completed"),
-                ProductionOrdersInProgress = await _context.ProductionOrders.CountAsync(o => o.Status == "In Progress"),
+                // Get machines under maintenance count
+                MachinesUnderMaintenance = await _context.Machines
+                    .CountAsync(m => m.Status == "Under Maintenance"),
 
-                // Get all machines with details
-                Machines = await _context.Machines.ToListAsync(),
+                // Get completed production orders count
+                ProductionOrdersCompleted = await _context.ProductionOrders
+                    .CountAsync(o => o.Status == "Completed"),
 
-                // Get recent production orders with product details
+                // Get in-progress production orders count
+                ProductionOrdersInProgress = await _context.ProductionOrders
+                    .CountAsync(o => o.Status == "In Progress"),
+
+                // Get all machines for table
+                Machine = await _context.Machines
+                    .OrderByDescending(m => m.CreatedAt)
+                    .ToListAsync(),
+
+                // Get recent production orders for table
                 ProductionOrders = await _context.ProductionOrders
                     .Include(o => o.Product)
                     .OrderByDescending(o => o.OrderDate)
