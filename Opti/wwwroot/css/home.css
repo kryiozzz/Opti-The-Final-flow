@@ -178,3 +178,25 @@ body {
         background-color: var(--text-color);
         color: var(--background-color);
     }
+
+.back-to-top {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 40px;
+    height: 40px;
+    background-color: #4361ee;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-decoration: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+}
+
+    .back-to-top:hover {
+        background-color: #3a56d4;
+        color: white;
+    }

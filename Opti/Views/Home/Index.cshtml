@@ -129,24 +129,71 @@
             <a href="#">Cookie Policy</a>
         </div>
     </div>
-
-    <a href="#" class="back-to-top">↑</a>
+    <a href="#" id="backToTop" class="back-to-top">
+        <i class="fas fa-arrow-up"></i>
+    </a>
 </footer>
 
 <script>
-    // Back to top button functionality
-    const backToTopButton = document.getElementById('backToTop');
+    // Back to top button functionality with smooth transition
+    document.addEventListener('DOMContentLoaded', function() {
+        const backToTopButton = document.getElementById('backToTop');
 
-    window.addEventListener('scroll', () => {
-        if (window.pageYOffset > 300) {
-            backToTopButton.classList.add('visible');
-        } else {
-            backToTopButton.classList.remove('visible');
-        }
-    });
+        if (!backToTopButton) return; // Exit if button doesn't exist
 
-    backToTopButton.addEventListener('click', (e) => {
-        e.preventDefault();
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        // Add transition styles directly via JavaScript
+        backToTopButton.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+        backToTopButton.style.opacity = '0';
+        backToTopButton.style.transform = 'translateY(20px)';
+        backToTopButton.style.pointerEvents = 'none'; // Prevent clicking when invisible
+
+        // Handle scroll events with throttling for better performance
+        let isScrolling;
+        window.addEventListener('scroll', () => {
+            // Clear the timeout on each scroll event
+            window.clearTimeout(isScrolling);
+
+            // Set a timeout to run after scrolling ends
+            isScrolling = setTimeout(() => {
+                if (window.pageYOffset > 300) {
+                    backToTopButton.style.opacity = '1';
+                    backToTopButton.style.transform = 'translateY(0)';
+                    backToTopButton.style.pointerEvents = 'auto'; // Enable clicking
+                } else {
+                    backToTopButton.style.opacity = '0';
+                    backToTopButton.style.transform = 'translateY(20px)';
+                    backToTopButton.style.pointerEvents = 'none'; // Disable clicking
+                }
+            }, 50); // Small timeout for performance
+        });
+
+        // Smooth scroll to top with easing
+        backToTopButton.addEventListener('click', (e) => {
+            e.preventDefault();
+
+            // Get the starting position
+            const startPosition = window.pageYOffset;
+            const duration = 800; // Duration in milliseconds
+            let startTime = null;
+
+            // Animation function with easing
+            function animation(currentTime) {
+                if (startTime === null) startTime = currentTime;
+                const timeElapsed = currentTime - startTime;
+                const progress = Math.min(timeElapsed / duration, 1);
+
+                // Easing function: easeOutQuad
+                const ease = 1 - Math.pow(1 - progress, 2);
+
+                window.scrollTo(0, startPosition * (1 - ease));
+
+                if (timeElapsed < duration) {
+                    requestAnimationFrame(animation);
+                }
+            }
+
+            // Start the animation
+            requestAnimationFrame(animation);
+        });
     });
 </script>
