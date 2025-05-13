@@ -16,6 +16,7 @@
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/Opti.styles.css" asp-append-version="true" />
     <!-- Bootstrap icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
 </head>
 <body>
@@ -27,12 +28,12 @@
                     <!-- Logo on the left -->
                     <a class="navbar-brand d-flex align-items-center" asp-area="" asp-controller="Home" asp-action="Index">
                         <!-- Logo image - add your actual logo path -->
-                        <img src="~/images/logo.png" alt="Opti Logo" height="40" class="me-2" />
+                        <img src="~/images/Optiflows.png" alt="Opti Logo" height="40" class="me-2" />
                         <!-- If you don't have a logo yet, you can use this placeholder with text -->
                         <!--<div class="bg-primary rounded-circle p-2 d-flex align-items-center justify-content-center me-2" style="width: 40px; height: 40px;">
                             <span class="text-white fw-bold">O</span>
                         </div>-->
-                        <span>Opti</span>
+                        <span>OptiFlow</span>
                     </a>
 
                     <!-- Toggle button for mobile -->
@@ -46,16 +47,28 @@
                         <!-- Left-side menu items -->
                         <ul class="navbar-nav flex-grow-1">
                             <li class="nav-item">
-                                <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
+                                <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">
+                                    <i class="fas fa-home me-1"></i> Home
+                                </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link text-dark" asp-area="" asp-controller="Products" asp-action="Index">Products</a>
+                                <a class="nav-link text-dark" asp-area="" asp-controller="CustomerDashboard" asp-action="Index">
+                                    <i class="fas fa-cube me-1"></i> Products
+                                </a>
                             </li>
+                            <!-- <li class="nav-item">
+                                <a class="nav-link text-dark" asp-area="" asp-controller="CustomerDashboard" asp-action="Machine">
+                                    <i class="fas fa-cogs me-1"></i> Machines
+                                </a>
+                            </li> -->
                             <li class="nav-item">
-                                <a class="nav-link text-dark" asp-area="" asp-controller="Machines" asp-action="Index">Machines</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link text-dark" asp-area="" asp-controller="ProductionOrders" asp-action="Index">Production</a>
+                                <a class="nav-link text-dark position-relative" asp-area="" asp-controller="CustomerDashboard" asp-action="Cart">
+                                    <i class="fas fa-shopping-cart me-1"></i> Cart
+                                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger cart-count">
+                                        0
+                                        <span class="visually-hidden">items in cart</span>
+                                    </span>
+                                </a>
                             </li>
                         </ul>
 
@@ -103,16 +116,7 @@
             @RenderBody()
         </main>
     </div>
-
-    @if (!isAdminOrWorkerDashboard)
-    {
-        <footer class="border-top footer text-muted">
-            <div class="container">
-                &copy; 2025 - Opti - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
-            </div>
-        </footer>
-    }
-
+  
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
