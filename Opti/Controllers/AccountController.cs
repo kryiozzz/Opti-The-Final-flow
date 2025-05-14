@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Opti.Data;
 using BCrypt.Net;
 using Opti.ViewModel; // Ensure you have this namespace for RegisterViewModel
+using System.Net.Http;
 
 namespace Opti.Controllers
 {
@@ -55,7 +56,8 @@ namespace Opti.Controllers
                         {
                             new Claim(ClaimTypes.Name, user.Username),
                             new Claim(ClaimTypes.Email, user.Email),
-                            new Claim(ClaimTypes.Role, user.Role)
+                            new Claim(ClaimTypes.Role, user.Role),
+                            new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString())  // Important: Add this claim for user ID
                         };
 
                         // Create identity
@@ -139,7 +141,7 @@ namespace Opti.Controllers
                     Username = model.Username,
                     Email = model.Email,
                     PasswordHash = BCrypt.Net.BCrypt.HashPassword(model.Password),
-                    Role = "Worker", // Default role is Worker, can be changed to Admin when needed
+                    Role = "Customer", // Default role is Worker, can be changed to Admin when needed
                     CreatedAt = DateTime.UtcNow
                 };
 
@@ -170,9 +172,51 @@ namespace Opti.Controllers
             return View(model);
         }
 
-        // Log out and redirect to login page
+        // Updated: Log out and redirect to login page - now with cart clearing
         public async Task<IActionResult> Logout()
         {
+            // Try to clear the cart before logging out
+            if (User.Identity.IsAuthenticated)
+            {
+                try
+                {
+                    // Direct database approach instead of HTTP call
+                    string userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+                    if (!string.IsNullOrEmpty(userIdClaim) && int.TryParse(userIdClaim, out int userId))
+                    {
+                        // Get all orders for this user
+                        var userOrders = await _context.CustomerOrders
+                            .Where(o => o.UserId == userId)
+                            .ToListAsync();
+
+                        // Restore product quantities and remove orders
+                        foreach (var order in userOrders)
+                        {
+                            var product = await _context.Products.FindAsync(order.ProductId);
+                            if (product != null)
+                            {
+                                // Return the quantity back to the product stock
+                                product.StockQuantity += order.Quantity;
+                                _context.Update(product);
+                            }
+
+                            _context.CustomerOrders.Remove(order);
+                        }
+
+                        // Save changes to database
+                        await _context.SaveChangesAsync();
+                        _logger.LogInformation("Cart cleared for user {UserId} during logout", userId);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // Log the error but continue with logout
+                    _logger.LogError(ex, "Error clearing cart during logout");
+                }
+            }
+
+            // Original logout code
             await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
             return RedirectToAction("Login");
         }

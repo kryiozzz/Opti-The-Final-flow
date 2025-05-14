@@ -1,59 +1,254 @@
 ﻿@model IEnumerable<Opti.Models.CustomerOrder>
+<form id="antiForgeryForm">
+    @Html.AntiForgeryToken()
+</form>
 
+@if (!User.Identity.IsAuthenticated)
+{
+        <script>
+            window.location.href = '@Url.Action("Login", "Account", new { returnUrl = Context.Request.Path })';
+        </script>
+    return;
+}
 @{
-    ViewData["Title"] = "Index";
+    ViewData["Title"] = "Customer Orders";
 }
 
-<h1>Index</h1>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@ViewData["Title"]</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="~/css/cart.css" />
+</head>
+<body>
+    <div class="container">
+        <div class="order-container">
+            <!-- Order Table Section -->
+            <div class="order-table-section">
+                <div class="card">
+                    <div class="table-container">
+                        <table class="cart-table">
+                            <thead>
+                                <tr>
+                                    <th class="checkbox-cell">
+                                        <input type="checkbox" class="checkbox-input" id="selectAll" />
+                                    </th>
+                                    <th>Products</th>
+                                    <th>Quantity</th>
+                                    <th>Price</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (Model != null && Model.Any())
+                                {
+                                    @foreach (var item in Model)
+                                    {
+                                                <tr data-order-id="@item.OrderId">
+                                                    <td class="checkbox-cell">
+                                                        <input type="checkbox" class="checkbox-input order-checkbox" />
+                                                    </td>
+                                                    <td>
+                                                        <div class="product-cell">
+                                                            <img src="@(item.Product?.ImagePath ?? "/images/default-product.jpg")" alt="Product" class="product-image" onerror="this.src='/images/default-product.jpg'" />
+                                                            <div>
+                                                                <div class="product-title">@(item.Product?.ProductName ?? "Product")</div>
+                                                                <div class="product-author">Order #@item.OrderId</div>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <div class="qty-control">
+                                                            <button class="qty-btn minus-btn" onclick="updateQuantity(@item.OrderId, -1)">
+                                                                <i class="fas fa-minus"></i>
+                                                            </button>
+                                                            <span class="qty-value">@item.Quantity</span>
+                                                            <button class="qty-btn plus-btn" onclick="updateQuantity(@item.OrderId, 1)">
+                                                                <i class="fas fa-plus"></i>
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                    <td>₱@item.TotalAmount</td>
+                                                    <td class="action-buttons">
+                                                        <button class="icon-btn remove" title="Remove" onclick="removeOrder(@item.OrderId)">
+                                                            <i class="fas fa-trash-alt"></i>
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                    }
+                                }
+                                else
+                                {
+                                        <tr>
+                                            <td colspan="5">
+                                                <div class="empty-cart">
+                                                    <i class="fas fa-clipboard-list empty-cart-icon"></i>
+                                                    <h2 class="empty-cart-title">No Orders Found</h2>
+                                                    <p class="empty-cart-message">There are currently no customer orders in the system.</p>
+                                                    <a asp-controller="CustomerDashboard" asp-action="Index" class="browse-btn">
+                                                        <i class="fas fa-shopping-bag"></i> Browse Products
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
 
-<p>
-    <a asp-action="Create">Create New</a>
-</p>
-<table class="table">
-    <thead>
-        <tr>
-            <th>
-                @Html.DisplayNameFor(model => model.Quantity)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.TotalAmount)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.OrderDate)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Product)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.User)
-            </th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-@foreach (var item in Model) {
-        <tr>
-            <td>
-                @Html.DisplayFor(modelItem => item.Quantity)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.TotalAmount)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.OrderDate)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Product.ProductId)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.User.UserId)
-            </td>
-            <td>
-                <a asp-action="Edit" asp-route-id="@item.OrderId">Edit</a> |
-                <a asp-action="Details" asp-route-id="@item.OrderId">Details</a> |
-                <a asp-action="Delete" asp-route-id="@item.OrderId">Delete</a>
-            </td>
-        </tr>
-}
-    </tbody>
-</table>
+            <!-- Order Summary Section -->
+            <div class="order-summary-section">
+                <div class="orders-summary">
+                    <div class="summary-header">Orders Summary</div>
+
+                    <div class="summary-row">
+                        <div>Total Order:</div>
+                        <div class="summary-value">@(Model?.Count() ?? 0)</div>
+                    </div>
+
+                    <div class="summary-row">
+                        <div>Total Item:</div>
+                        <div class="summary-value">@(Model?.Sum(o => o.Quantity) ?? 0)</div>
+                    </div>
+
+                    <div class="summary-row summary-total">
+                        <div>Total Revenue:</div>
+                        <div class="summary-value">₱@(Model?.Sum(o => o.TotalAmount) ?? 0)</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Keep the original footer -->
+    <footer class="footer">
+        <div class="footer-copyright">© 2025 - OptiFlow. All rights reserved.</div>
+        <div class="footer-links">
+            <a href="/privacy">Privacy Policy</a>
+            <a href="/terms">Terms of Service</a>
+            <a href="/cookies">Cookie Policy</a>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
+    <script>
+
+        // Select all checkboxes functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const selectAllCheckbox = document.getElementById('selectAll');
+            if (selectAllCheckbox) {
+                selectAllCheckbox.addEventListener('change', function() {
+                    const allCheckboxes = document.querySelectorAll('.order-checkbox');
+                    allCheckboxes.forEach(checkbox => {
+                        checkbox.checked = selectAllCheckbox.checked;
+                    });
+                });
+            }
+
+            // Individual checkbox change events
+            const orderCheckboxes = document.querySelectorAll('.order-checkbox');
+            orderCheckboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    // Check if all checkboxes are checked
+                    const allChecked = Array.from(orderCheckboxes).every(cb => cb.checked);
+                    if (selectAllCheckbox) {
+                        selectAllCheckbox.checked = allChecked;
+                    }
+                });
+            });
+        });
+
+    async function updateQuantity(orderId, change) {
+        try {
+            const response = await fetch(`/CustomerOrders/UpdateQuantity/${orderId}?change=${change}`, {
+                method: 'POST',
+                headers: {
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value
+                }
+            });
+
+            const result = await response.json();
+
+            if (result.requireLogin) {
+                window.location.href = '/Account/Login';
+                return;
+            }
+
+            if (result.success) {
+                // Update the quantity and total in the UI
+                const row = document.querySelector(`tr[data-order-id="${orderId}"]`);
+                row.querySelector('.qty-value').textContent = result.newQuantity;
+                row.querySelector('td:nth-child(4)').textContent = `₱${result.newTotal.toFixed(2)}`;
+
+                // Update summary
+                updateSummary();
+            } else {
+                alert(result.message);
+            }
+        } catch (error) {
+            console.error("Error:", error);
+            alert("Something went wrong while updating quantity.");
+        }
+    }
+
+    async function removeOrder(orderId) {
+        if (!confirm("Are you sure you want to remove this item?")) return;
+
+        try {
+            const response = await fetch(`/CustomerOrders/RemoveFromCart/${orderId}`, {
+                method: 'POST',
+                headers: {
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value
+                }
+            });
+
+            const result = await response.json();
+
+            if (result.requireLogin) {
+                window.location.href = '/Account/Login';
+                return;
+            }
+
+            if (result.success) {
+                // Remove the row from the table
+                const row = document.querySelector(`tr[data-order-id="${orderId}"]`);
+                row?.remove();
+
+                // Update summary
+                updateSummary();
+            } else {
+                alert(result.message);
+            }
+        } catch (error) {
+            console.error("Error:", error);
+            alert("Something went wrong while removing the item.");
+        }
+    }
+
+    function updateSummary() {
+        const rows = document.querySelectorAll('tbody tr[data-order-id]');
+        let totalOrders = 0;
+        let totalItems = 0;
+        let totalRevenue = 0;
+
+        rows.forEach(row => {
+            totalOrders++;
+            const quantity = parseInt(row.querySelector('.qty-value')?.textContent || 0);
+            const totalAmount = parseFloat(row.querySelector('td:nth-child(4)')?.textContent.replace("₱", "") || 0);
+            totalItems += quantity;
+            totalRevenue += totalAmount;
+        });
+
+        document.querySelector('.summary-row:nth-child(2) .summary-value').textContent = totalOrders;
+        document.querySelector('.summary-row:nth-child(3) .summary-value').textContent = totalItems;
+        document.querySelector('.summary-total .summary-value').textContent = `₱${totalRevenue.toFixed(2)}`;
+    }
+    </script>
+</body>
+</html>

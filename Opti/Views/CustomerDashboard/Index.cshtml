@@ -1,5 +1,11 @@
 ﻿@model IEnumerable<Opti.Models.Product>
-
+@if (!User.Identity.IsAuthenticated)
+{
+        <script>
+            window.location.href = '@Url.Action("Login", "Account", new { returnUrl = Context.Request.Path })';
+        </script>
+    return;
+}
 @{
     ViewData["Title"] = "Products";
 }
@@ -13,6 +19,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <link rel="stylesheet" href="~/css/customer.css" />
+    <link rel="stylesheet" href="~/css/toast.css" />
 </head>
 <body>
     <div class="main-container">
@@ -21,26 +28,26 @@
                 @if (ViewData["Breadcrumbs"] != null)
                 {
                     var breadcrumbs = (List<Opti.Controllers.Breadcrumb>)ViewData["Breadcrumbs"];
-                    <ul class="breadcrumbs">
+                        <ul class="breadcrumbs">
                         @for (int i = 0; i < breadcrumbs.Count; i++)
                         {
                             var breadcrumb = breadcrumbs[i];
-                            <li>
+                                    <li>
                                 @if (string.IsNullOrEmpty(breadcrumb.Url))
                                 {
-                                    <span class="current">@breadcrumb.Title</span>
+                                                <span class="current">@breadcrumb.Title</span>
                                 }
                                 else
                                 {
-                                    <a href="@breadcrumb.Url">@breadcrumb.Title</a>
+                                                <a href="@breadcrumb.Url">@breadcrumb.Title</a>
                                 }
-                            </li>
+                                    </li>
                         }
-                    </ul>
+                        </ul>
                 }
                 else
                 {
-                    <p>Pages / Products</p>
+                        <p>Pages / Products</p>
                 }
             </div>
             <div class="search-box">
@@ -58,39 +65,41 @@
             {
                 @foreach (var product in Model)
                 {
-                    <div class="product-card"
-                         data-product-id="@product.ProductId">
-                        <img src="@product.ImagePath" alt="@product.ProductName">
-                        <div class="title">@product.ProductName</div>
-                        <div class="author">@product.Description</div>
-                        <div class="price">Price: $@product.Price</div>
-                        <div class="buttons">
-                            <button class="add-to-cart-btn" onclick="addToCart(@product.ProductId)">
-                                <i class="fas fa-shopping-cart"></i> Add to Cart
-                            </button>
-                            <button class="details-btn" onclick="showDetails(@product.ProductId)">Details</button>
-                        </div>
-                    </div>
+                            <div class="product-card"
+                                 data-product-id="@product.ProductId">
+                                <img src="@product.ImagePath" alt="@product.ProductName">
+                                <div class="title">@product.ProductName</div>
+                                <div class="author">@product.Description</div>
+                                <div class="price">Price: ₱@product.Price</div>
+                                <div class="stock">In Stock: @product.StockQuantity</div>
+                                <div class="buttons">
+                                    <button class="add-to-cart-btn" onclick="addToCart(@product.ProductId)" @(product.StockQuantity < 1 ? "disabled" : "")>
+                                        <i class="fas fa-shopping-cart"></i> @(product.StockQuantity < 1 ? "Out of Stock" : "Add to Cart")
+                                    </button>
+                                    <button class="details-btn" onclick="showDetails(@product.ProductId)">Details</button>
+                                </div>
+                            </div>
                 }
             }
             else
             {
-                <div class="no-results">
-                    <i class="fas fa-search"></i>
-                    <h3>No products found</h3>
+                    <div class="no-results">
+                        <i class="fas fa-search"></i>
+                        <h3>No products found</h3>
                     @if (!string.IsNullOrEmpty((string)ViewData["SearchQuery"]))
                     {
-                        <p>We couldn't find any products matching your search: "@ViewData["SearchQuery"]"</p> 
+                                <p>We couldn't find any products matching your search: "@ViewData["SearchQuery"]"</p> 
                     }
                     else
                     {
-                        <p>There are no products available at the moment.</p>
+                                <p>There are no products available at the moment.</p>
                     }
-                </div>
+                    </div>
             }
         </div>
     </div>
 
+    <!-- Product Details Modal -->
     <div id="detailsModal" class="modal" style="display: none; position: fixed; z-index: 1; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4);">
         <div class="modal-content" style="background-color: #fefefe; margin: 15% auto; padding: 20px; border: 1px solid #888; width: 40%; border-radius: 10px; position: relative;">
             <span class="close-button" style="color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer;">&times;</span>
@@ -100,7 +109,22 @@
             <p id="modalPrice" class="modal-price" style="color: #4a90e2; font-weight: bold; font-size: 16px; margin-bottom: 15px;"></p>
             <p id="modalDescription" class="modal-description" style="margin-bottom: 15px;"></p>
             <p id="modalStock" class="modal-stock" style="color: #5cb85c; margin-bottom: 15px;"></p>
+            <button id="modalAddToCartBtn" class="add-to-cart-btn" style="width: 100%;">
+                <i class="fas fa-shopping-cart"></i> Add to Cart
+            </button>
         </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast-container">
+        <div class="toast-content">
+            <i id="toast-icon" class="fas fa-check-circle"></i>
+            <div class="toast-message">
+                <span id="toast-title" class="toast-title">Success</span>
+                <span id="toast-desc" class="toast-desc">Item added to cart successfully!</span>
+            </div>
+        </div>
+        <div class="toast-progress"></div>
     </div>
 
     <footer class="footer">
@@ -113,32 +137,36 @@
     </footer>
 
     <script>
-        // Get the modal
-        var modal = document.getElementById("detailsModal");
+        // Get the modal and toast elements
+        const modal = document.getElementById("detailsModal");
+        const closeButton = document.querySelector(".close-button");
+        const toast = document.getElementById("toast");
+        const toastTitle = document.getElementById("toast-title");
+        const toastDesc = document.getElementById("toast-desc");
+        const toastIcon = document.getElementById("toast-icon");
 
-        // Get the close button
-        var closeButton = document.querySelector(".close-button");
+        // Get the modal elements
+        const modalImage = document.getElementById("modalImage");
+        const modalTitle = document.getElementById("modalTitle");
+        const modalAuthor = document.getElementById("modalAuthor");
+        const modalPrice = document.getElementById("modalPrice");
+        const modalDescription = document.getElementById("modalDescription");
+        const modalStock = document.getElementById("modalStock");
+        const modalAddToCartBtn = document.getElementById("modalAddToCartBtn");
 
-        // Get the elements to update in the modal
-        var modalImage = document.getElementById("modalImage");
-        var modalTitle = document.getElementById("modalTitle");
-        var modalAuthor = document.getElementById("modalAuthor");
-        var modalPrice = document.getElementById("modalPrice");
-        var modalDescription = document.getElementById("modalDescription");
-        var modalStock = document.getElementById("modalStock");
+        let currentProductId = null;
 
-         function showDetails(productId) {
-            console.log("Details button clicked for product ID:", productId);
+        // Show details modal
+        function showDetails(productId) {
             fetch('/CustomerDashboard/Details/' + productId)
                 .then(response => {
-                    console.log("Response received:", response);
                     if (!response.ok) {
                         throw new Error("Network response was not ok: " + response.statusText);
                     }
                     return response.json();
                 })
                 .then(data => {
-                    console.log("Data received:", data);
+                    currentProductId = data.productId;
                     modalImage.src = data.imagePath;
                     modalTitle.textContent = data.productName;
                     modalAuthor.textContent = 'Created: ' + new Date(data.createdAt).toLocaleDateString();
@@ -146,31 +174,47 @@
                     modalDescription.textContent = data.description;
                     modalStock.textContent = 'In Stock: ' + data.stockQuantity + ' items';
 
-                    // Force the modal to be visible
+                    // Update the Add to Cart button
+                    if (data.stockQuantity < 1) {
+                        modalAddToCartBtn.disabled = true;
+                        modalAddToCartBtn.innerHTML = '<i class="fas fa-shopping-cart"></i> Out of Stock';
+                        modalStock.style.color = '#dc3545'; // Red for out of stock
+                    } else {
+                        modalAddToCartBtn.disabled = false;
+                        modalAddToCartBtn.innerHTML = '<i class="fas fa-shopping-cart"></i> Add to Cart';
+                        modalStock.style.color = '#5cb85c'; // Green for in stock
+                    }
+
+                    // Show modal
                     modal.style.display = "block";
-                    console.log("Modal display style set to:", modal.style.display);
                 })
                 .catch(error => {
-                    console.error('Error in showDetails:', error);
-                    alert("Error loading product details. See console for more information.");
+                    console.error('Error loading product details:', error);
+                    showToast('Error', 'Could not load product details', 'error');
                 });
         }
 
-        // Add to cart function
+        // Add to cart function - Improved version that creates a CustomerOrder
         function addToCart(productId) {
-            fetch('/CustomerDashboard/AddToCart', {
+            fetch('/CustomerOrders/AddToCart', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRF-TOKEN': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
                 },
-                body: 'productId=' + productId
+                body: 'productId=' + productId + '&quantity=1'
             })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    alert(data.message);
-                    // Optionally update cart icon count if you have one
-                    // document.querySelector('.cart-count').textContent = data.cartCount;
+                    // Show success toast with product name
+                    showToast('Added to Cart', data.productName + ' added to your cart', 'success');
+
+                    // Update order count indicator if exists
+                    updateOrderCount(data.orderCount);
+
+                    // Update UI for product stock if needed
+                    updateProductStockUI(productId);
                 } else {
                     // Check if login is required
                     if (data.requireLogin) {
@@ -178,44 +222,96 @@
                             window.location.href = '/Account/Login?returnUrl=' + encodeURIComponent(window.location.pathname);
                         }
                     } else {
-                        alert('Error: ' + data.message);
+                        showToast('Error', data.message, 'error');
                     }
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('Error adding to cart');
+                showToast('Error', 'Failed to add item to cart', 'error');
             });
         }
 
-             // Function to update cart count display
-        function updateCartCount(count) {
-            const cartCountElement = document.querySelector('.cart-count');
-            if (cartCountElement) {
-                cartCountElement.textContent = count;
+        // Show toast message
+        function showToast(title, message, type = 'success') {
+            // Set toast content
+            toastTitle.textContent = title;
+            toastDesc.textContent = message;
+
+            // Set toast type
+            if (type === 'success') {
+                toast.className = 'toast-container toast-success';
+                toastIcon.className = 'fas fa-check-circle';
+            } else if (type === 'error') {
+                toast.className = 'toast-container toast-error';
+                toastIcon.className = 'fas fa-exclamation-circle';
+            } else if (type === 'warning') {
+                toast.className = 'toast-container toast-warning';
+                toastIcon.className = 'fas fa-exclamation-triangle';
+            }
+
+            // Show toast
+            toast.classList.add('active');
+
+            // Hide after 5 seconds
+            setTimeout(() => {
+                toast.classList.remove('active');
+            }, 5000);
+        }
+
+        // Update order count display
+        function updateOrderCount(count) {
+            const orderCountElement = document.querySelector('.order-count');
+            if (orderCountElement) {
+                orderCountElement.textContent = count;
+                orderCountElement.classList.add('pulse');
+
+                // Remove pulse animation after it completes
+                setTimeout(() => {
+                    orderCountElement.classList.remove('pulse');
+                }, 1000);
             }
         }
 
-        // Load the initial cart count when page loads
-        document.addEventListener('DOMContentLoaded', function() {
-            fetch('/CustomerDashboard/GetCartCount')
-                .then(response => response.json())
-                .then(data => {
-                    updateCartCount(data.count);
-                })
-                .catch(error => console.error('Error loading cart count:', error));
+        // Update product stock UI after adding to cart
+        function updateProductStockUI(productId) {
+            // Refresh the page might be simplest, but could also update UI dynamically
+            // by fetching updated product info and updating the display
+
+            // For now, let's schedule a page refresh after a short delay
+            // This ensures all UI elements reflect the new stock level
+            setTimeout(() => {
+                window.location.reload();
+            }, 2000);
+        }
+
+        // Modal Add to Cart button event
+        modalAddToCartBtn.addEventListener('click', function() {
+            if (currentProductId) {
+                addToCart(currentProductId);
+                modal.style.display = "none";
+            }
         });
 
-        // Add event listener to the close button
+        // Close modal events
         closeButton.addEventListener('click', function() {
             modal.style.display = "none";
         });
 
-        // Close the modal if the user clicks outside of it
         window.addEventListener('click', function(event) {
             if (event.target == modal) {
                 modal.style.display = "none";
             }
+        });
+
+        // Load initial order count
+        document.addEventListener('DOMContentLoaded', function() {
+            fetch('/CustomerOrders/GetOrderCount')
+                .then(response => response.json())
+                .then(data => {
+                    updateOrderCount(data.count);
+                })
+                .catch(error => console.error('Error loading order count:', error));
         });
     </script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>

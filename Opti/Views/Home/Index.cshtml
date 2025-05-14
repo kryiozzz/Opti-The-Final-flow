@@ -3,6 +3,7 @@
 }
 
 <!-- Link to external CSS -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <link rel="stylesheet" href="~/css/home.css" />
 
 <!-- Hero Section with parallax effect -->
@@ -123,17 +124,104 @@
             © 2025 - OptiFlow. All rights reserved.
         </div>
         <div class="footer-bottom-links">
-            <a href="#">About Us</a> 
-            <a href="#">Privacy Policy</a>
-            <a href="#">Terms of Service</a>
-            <a href="#">Cookie Policy</a>
+          <a href="#" data-bs-toggle="modal" data-bs-target="#aboutModal">About Us</a> |
+          <a href="#" data-bs-toggle="modal" data-bs-target="#cookiesModal">Cookies Policy</a> |
+          <a href="#" data-bs-toggle="modal" data-bs-target="#termsModal">Terms & Conditions</a> |
+          <a href="#" data-bs-toggle="modal" data-bs-target="#privacyModal">Privacy Policy</a>
         </div>
     </div>
+    <!-- ABOUT US MODAL -->
+<div class="modal fade" id="aboutModal" tabindex="-1" aria-labelledby="aboutModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">About OptiFlow</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p><strong>OptiFlow</strong> is a leading provider of automation solutions tailored for the industrial and manufacturing sectors. We streamline operations through smart automation systems that optimize productivity, reduce manual errors, and enhance output quality. In addition, our Point of Sale (POS) system supports real-time sales transactions, inventory tracking, and customer engagement, making it ideal for business units selling directly to consumers. Our mission is to empower industries and retailers with efficient, scalable, and intelligent automation tools.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- COOKIES POLICY MODAL -->
+<div class="modal fade" id="cookiesModal" tabindex="-1" aria-labelledby="cookiesModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Cookies Policy</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p>We use cookies to enhance your experience on the OptiFlow platform. Cookies help us remember your preferences, improve performance, and deliver personalized content. By continuing to use our site, you consent to the use of cookies. You may adjust your browser settings to disable cookies, but some features of the platform may not function properly as a result.</p>
+        <p>Types of cookies used:</p>
+        <ul>
+          <li><strong>Essential cookies</strong> – required for site functionality.</li>
+          <li><strong>Analytics cookies</strong> – used to measure usage and improve performance.</li>
+          <li><strong>Preference cookies</strong> – to save settings like language or region.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TERMS AND CONDITIONS MODAL -->
+<div class="modal fade" id="termsModal" tabindex="-1" aria-labelledby="termsModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Terms and Conditions</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p>By using OptiFlow’s platform and services, you agree to abide by the following terms:</p>
+        <ul>
+          <li>All automation and POS services are provided in accordance with Republic Act No. 8792 (E-Commerce Act) and relevant Philippine laws.</li>
+          <li>You must not use the system to upload or distribute unlawful content or interfere with system operations.</li>
+          <li>All intellectual property, software, and content belong to OptiFlow and may not be used without permission.</li>
+          <li>We are not liable for indirect losses resulting from service interruptions or system errors.</li>
+          <li>Terms may be modified at any time, and continued use implies acceptance of updates.</li>
+        </ul>
+        <p>For legal disputes, jurisdiction falls under the courts of [Insert City], Philippines.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PRIVACY POLICY MODAL -->
+<div class="modal fade" id="privacyModal" tabindex="-1" aria-labelledby="privacyModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Privacy Policy</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p>OptiFlow is committed to protecting your personal information in compliance with the Data Privacy Act of 2012 (RA 10173).</p>
+        <h6>1. Collection and Use</h6>
+        <p>We collect personal data such as name, contact info, user activity, and transaction records to support platform functionality, analytics, and communication.</p>
+
+        <h6>2. Data Protection</h6>
+        <p>We use encryption, secure servers, and role-based access control to safeguard user data.</p>
+
+        <h6>3. Sharing and Disclosure</h6>
+        <p>Data will not be shared with third parties unless required by law or with user consent.</p>
+
+        <h6>4. Your Rights</h6>
+        <p>You may access, update, or request deletion of your data, or file complaints with our Data Protection Officer at [Insert Contact].</p>
+
+        <h6>5. Changes</h6>
+        <p>We may revise this Privacy Policy and notify users via system message or email. Continued use indicates consent to the new terms.</p>
+      </div>
+    </div>
+  </div>
+</div>
     <a href="#" id="backToTop" class="back-to-top">
         <i class="fas fa-arrow-up"></i>
     </a>
 </footer>
-
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
     // Back to top button functionality with smooth transition
     document.addEventListener('DOMContentLoaded', function() {

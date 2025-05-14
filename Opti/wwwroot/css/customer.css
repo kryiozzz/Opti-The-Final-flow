@@ -8,29 +8,6 @@ body {
     overflow-x: hidden;
 }
 
-/* Navbar styles */
-.navbar {
-    padding: 0.75rem 1rem;
-    background-color: #fff;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-}
-
-/* Fix Account color and spacing in navbar */
-.navbar-nav .nav-link {
-    color: #000000 !important;
-    transition: all 0.3s ease;
-    margin: 0 10px;
-    padding: 8px 12px;
-}
-
-    .navbar-nav .nav-link:hover {
-        color: #0056b3 !important;
-        transform: translateY(-2px);
-    }
-
-.navbar-nav .nav-item {
-    margin: 0 5px;
-}
 
 /* Main container responsive layout */
 .main-container {
@@ -392,3 +369,4 @@ body {
         justify-content: center;
     }
 }
+
