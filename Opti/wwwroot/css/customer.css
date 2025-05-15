@@ -370,3 +370,60 @@ body {
     }
 }
 
+/* Add these custom styles to your site.css file */
+
+/* Profile page specific styles */
+.profile-card {
+    transition: all 0.3s ease;
+    border-radius: 0.5rem;
+    overflow: hidden;
+}
+
+    .profile-card:hover {
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+    }
+
+.avatar {
+    position: relative;
+    display: inline-block;
+}
+
+.feature-icon {
+    width: 60px;
+    height: 60px;
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(13, 110, 253, 0.05);
+}
+
+/* Card title and header styles */
+.card-header {
+    border-bottom: 1px solid rgba(0,0,0,0.1);
+    background-color: #fff;
+    padding: 1rem 1.25rem;
+}
+
+/* Avatar styles */
+.avatar .rounded-circle {
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+/* Badge styles */
+.badge.bg-success {
+    padding: 0.5em 0.8em;
+}
+
+/* Button transitions */
+.btn {
+    transition: all 0.2s ease;
+}
+
+/* Responsive adjustments */
+@media (max-width: 767.98px) {
+    .avatar .rounded-circle {
+        width: 80px;
+        height: 80px;
+        font-size: 32px;
+    }
+}

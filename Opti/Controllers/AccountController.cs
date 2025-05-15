@@ -9,6 +9,8 @@ using Opti.Data;
 using BCrypt.Net;
 using Opti.ViewModel; // Ensure you have this namespace for RegisterViewModel
 using System.Net.Http;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Opti.Controllers
 {
@@ -172,53 +174,113 @@ namespace Opti.Controllers
             return View(model);
         }
 
-        // Updated: Log out and redirect to login page - now with cart clearing
+        [HttpPost]
         public async Task<IActionResult> Logout()
         {
-            // Try to clear the cart before logging out
-            if (User.Identity.IsAuthenticated)
+            await HttpContext.SignOutAsync(); // If using standard authentication middleware
+
+            foreach (var cookie in Request.Cookies.Keys)
             {
-                try
-                {
-                    // Direct database approach instead of HTTP call
-                    string userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
-
-                    if (!string.IsNullOrEmpty(userIdClaim) && int.TryParse(userIdClaim, out int userId))
-                    {
-                        // Get all orders for this user
-                        var userOrders = await _context.CustomerOrders
-                            .Where(o => o.UserId == userId)
-                            .ToListAsync();
-
-                        // Restore product quantities and remove orders
-                        foreach (var order in userOrders)
-                        {
-                            var product = await _context.Products.FindAsync(order.ProductId);
-                            if (product != null)
-                            {
-                                // Return the quantity back to the product stock
-                                product.StockQuantity += order.Quantity;
-                                _context.Update(product);
-                            }
-
-                            _context.CustomerOrders.Remove(order);
-                        }
-
-                        // Save changes to database
-                        await _context.SaveChangesAsync();
-                        _logger.LogInformation("Cart cleared for user {UserId} during logout", userId);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    // Log the error but continue with logout
-                    _logger.LogError(ex, "Error clearing cart during logout");
-                }
+                Response.Cookies.Delete(cookie);
             }
 
-            // Original logout code
-            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-            return RedirectToAction("Login");
+
+            HttpContext.Session.Clear();
+
+            _logger?.LogInformation("User logged out");
+
+            // Redirect to home page or login page
+            return RedirectToAction("Index", "Home");
+        }
+
+        [Authorize]
+        public async Task<IActionResult> Profile()
+        {
+            try
+            {
+                // Get current user ID from claims
+                var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int userId))
+                {
+                    userIdClaim = User.FindFirstValue("UserId");
+                    if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out userId))
+                    {
+                        // If we still can't get the ID, try by username
+                        var username = User.Identity.Name;
+                        var userByName = await _context.Users.FirstOrDefaultAsync(u => u.Username == username);
+                        if (userByName != null)
+                        {
+                            userId = userByName.UserId;
+                        }
+                        else
+                        {
+                            return NotFound("User not found");
+                        }
+                    }
+                }
+
+                // Get user from database with all necessary data
+                var user = await _context.Users.FindAsync(userId);
+                if (user == null)
+                {
+                    return NotFound("User not found");
+                }
+
+                // Get recent orders for this user
+                var recentOrders = await _context.CustomerOrders
+                    .Where(o => o.UserId == userId)
+                    .OrderByDescending(o => o.OrderDate)
+                    .Take(5)
+                    .ToListAsync();
+
+                // Get total orders count
+                var totalOrders = await _context.CustomerOrders
+                    .Where(o => o.UserId == userId)
+                    .CountAsync();
+
+                // Get current cart items count
+                var cartItems = await _context.CustomerOrders
+                    .Where(o => o.UserId == userId)
+                    .SumAsync(o => o.Quantity);
+
+                // Get total amount spent
+                var totalSpent = await _context.CustomerOrders
+                    .Where(o => o.UserId == userId)
+                    .SumAsync(o => o.TotalAmount);
+
+                // Add these to ViewBag for use in the view
+                ViewBag.RecentOrders = recentOrders;
+                ViewBag.TotalOrders = totalOrders;
+                ViewBag.CartItems = cartItems;
+                ViewBag.TotalSpent = totalSpent;
+
+                // Pass the user object directly to the view
+                return View(user);
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "Error loading profile");
+                TempData["ErrorMessage"] = "An error occurred while loading your profile";
+                return RedirectToAction("Index", "Home");
+            }
+        }
+
+        // Helper method to hash password
+        private string HashPassword(string password)
+        {
+            // In a real application, use a proper password hashing library
+            // This is just a simple example using BCrypt.Net
+            return BCrypt.Net.BCrypt.HashPassword(password);
+        }
+
+        // Helper method to verify password
+        private bool VerifyPassword(string password, string passwordHash)
+        {
+            // In a real application, use a proper password verification
+            // This is just a simple example using BCrypt.Net
+            return BCrypt.Net.BCrypt.Verify(password, passwordHash);
         }
     }
+
 }
+

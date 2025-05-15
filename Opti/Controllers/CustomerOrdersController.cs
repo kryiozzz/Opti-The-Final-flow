@@ -98,9 +98,6 @@ namespace Opti.Controllers
             return View(await applicationDbContext.ToListAsync());
         }
 
-        
-        // Add these methods to your CustomerOrdersController class
-
         // POST: CustomerOrders/UpdateQuantity/5?change=1
         [HttpPost]
         [Authorize]
@@ -392,7 +389,8 @@ namespace Opti.Controllers
             }
         }
 
-        // Remove all items from cart (clears cart upon logout)
+        // Modified: ClearCart now becomes a manual action rather than automatic logout process
+        // This method should only be called when a user explicitly wants to clear their cart
         [HttpPost]
         [Authorize]
         public async Task<IActionResult> ClearCart()
@@ -441,6 +439,16 @@ namespace Opti.Controllers
                 _logger?.LogError(ex, "Error clearing cart for user: {UserId}", userId);
                 return Json(new { success = false, message = "An error occurred: " + ex.Message });
             }
+        }
+
+        // Add a new method to gracefully handle cart persistence on logout
+        // This prevents automatic cart clearing on logout
+        [HttpPost]
+        [Authorize]
+        public async Task<IActionResult> PrepareForLogout()
+        {
+            // Do nothing - cart will be preserved in the database for the next login
+            return Json(new { success = true, message = "Cart preserved for next login" });
         }
     }
 }

@@ -1,0 +1,148 @@
+﻿@model Opti.Models.User
+
+@{
+    ViewData["Title"] = "My Profile";
+}
+
+<div class="container py-5">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="display-5 fw-bold">My Profile</h1>
+            <p class="text-muted">Manage your account information and view your order history</p>
+            <hr>
+        </div>
+    </div>
+
+    <!-- User Profile Section -->
+    <div class="row mb-4">
+        <div class="col-md-4 mb-4 mb-md-0">
+            <div class="card h-100 profile-card">
+                <div class="card-body text-center">
+                    <div class="avatar mb-3">
+                        <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center mx-auto" style="width: 100px; height: 100px; font-size: 40px;">
+                            @Model.Username.Substring(0, 1).ToUpper()
+                        </div>
+                    </div>
+                    <h5 class="card-title">@Model.Username</h5>
+                    <p class="card-text text-muted mb-3">Customer</p>
+                    <p class="card-text">
+                        <i class="bi bi-envelope"></i> @Model.Email
+                    </p>
+                    <p class="card-text">
+                        <i class="bi bi-person-badge"></i> User ID: @Model.UserId
+                    </p>
+                    <p class="card-text">
+                        <i class="bi bi-calendar-check"></i> Member since: @Model.CreatedAt.ToString("MMMM yyyy")
+                    </p>
+                    <div class="mt-4">
+                        <a href="#" class="btn btn-outline-primary">
+                            <i class="bi bi-pencil-fill me-1"></i> Edit Profile
+                        </a>
+                        <a asp-action="ChangePassword" class="btn btn-outline-secondary ms-2">
+                            <i class="bi bi-shield-lock-fill me-1"></i> Change Password
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-8">
+            <!-- Activity Summary -->
+            <div class="card mb-4 profile-card">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Activity Summary</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-4">
+                            <div class="feature-icon d-inline-flex align-items-center justify-content-center text-primary bg-primary bg-opacity-10 p-3 rounded-circle mb-3">
+                                <i class="bi bi-bag-check-fill" style="font-size: 1.5rem;"></i>
+                            </div>
+                            <h5>Total Orders</h5>
+                            <p class="display-6">@(ViewBag.TotalOrders ?? 0)</p>
+                        </div>
+                        <div class="col-4">
+                            <div class="feature-icon d-inline-flex align-items-center justify-content-center text-success bg-success bg-opacity-10 p-3 rounded-circle mb-3">
+                                <i class="bi bi-cart-check-fill" style="font-size: 1.5rem;"></i>
+                            </div>
+                            <h5>Cart Items</h5>
+                            <p class="display-6">@(ViewBag.CartItems ?? 0)</p>
+                        </div>
+                        <div class="col-4">
+                            <div class="feature-icon d-inline-flex align-items-center justify-content-center text-info bg-info bg-opacity-10 p-3 rounded-circle mb-3">
+                                <i class="bi bi-cash-stack" style="font-size: 1.5rem;"></i>
+                            </div>
+                            <h5>Total Spent</h5>
+                            <p class="fs-4">$@(ViewBag.TotalSpent?.ToString("F2") ?? "0.00")</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Orders -->
+            <div class="card profile-card">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Recent Orders</h5>
+                    <a asp-controller="CustomerOrders" asp-action="Index" class="btn btn-sm btn-primary">View All Orders</a>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Order ID</th>
+                                    <th>Date</th>
+                                    <th>Products</th>
+                                    <th>Total</th>
+                                    <th>Status</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (ViewBag.RecentOrders != null && ViewBag.RecentOrders.Count > 0)
+                                {
+                                    @foreach (var order in ViewBag.RecentOrders)
+                                    {
+                                                <tr>
+                                                    <td>#@order.OrderId</td>
+                                                    <td>@order.OrderDate.ToString("MMM dd, yyyy")</td>
+                                                    <td>@order.Quantity item(s)</td>
+                                                    <td>$@order.TotalAmount.ToString("F2")</td>
+                                                    <td><span class="badge bg-success">Completed</span></td>
+                                                    <td>
+                                                        <a href="#" class="btn btn-sm btn-outline-primary">Details</a>
+                                                    </td>
+                                                </tr>
+                                    }
+                                }
+                                else
+                                {
+                                        <tr>
+                                            <td colspan="6" class="text-center py-5">
+                                                <div>
+                                                    <i class="bi bi-bag-x" style="font-size: 2rem;"></i>
+                                                    <p class="mt-2">No orders yet</p>
+                                                    <a asp-controller="CustomerDashboard" asp-action="Index" class="btn btn-primary mt-2">
+                                                        Start Shopping
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+        <script>
+            $(document).ready(function() {
+                // Any profile-specific JavaScript can go here
+            });
+        </script>
+}

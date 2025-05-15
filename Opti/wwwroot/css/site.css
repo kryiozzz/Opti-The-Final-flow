@@ -196,54 +196,57 @@ body {
         transform: translateY(-5px);
     }
 
-/* Make the Account text black */
-.navbar-nav .nav-link {
-    color: #000000 !important; /* Using !important to override any Bootstrap defaults */
-    transition: all 0.3s ease; /* Smooth transition for hover effects */
-    margin: 0 10px; /* Add horizontal spacing between nav links */
-    padding: 8px 12px; /* Increase padding around the text */
+.dropdown-toggle {
+    cursor: pointer;
 }
 
-    /* Add hover effect for nav links */
-    .navbar-nav .nav-link:hover {
-        color: #0056b3 !important; /* Blue color on hover */
-        transform: translateY(-2px); /* Slight lift effect */
+/* Add this CSS to override Bootstrap's default styles for dropdown toggles */
+.nav-link.dropdown-toggle {
+    outline: none;
+    box-shadow: none;
+}
+
+    .nav-link.dropdown-toggle:focus {
+        outline: none;
+        box-shadow: none;
     }
 
-/* Make sure the dropdown items are also black */
-.navbar-nav .dropdown-item {
-    color: #000000;
-    transition: all 0.2s ease;
-    padding: 10px 20px; /* Increase padding for dropdown items */
+/* Fix for dropdown button when it's a button element */
+button.nav-link {
+    font-weight: normal;
+    text-align: left;
+    padding: 0.5rem 1rem;
+    color: rgba(0,0,0,0.55);
 }
 
-    /* Add hover effect for dropdown items */
-    .navbar-nav .dropdown-item:hover {
-        color: #0056b3;
-        background-color: #f8f9fa; /* Light background on hover */
-        padding-left: 25px; /* Slight indent effect */
+    button.nav-link:hover {
+        color: rgba(0,0,0,0.7);
     }
 
-/* If you specifically want to target just the "Account" text and not other nav links */
-.navbar-nav .nav-item.dropdown .nav-link span {
-    color: #000000 !important;
-}
-
-/* Hover effect for just the Account text */
-.navbar-nav .nav-item.dropdown .nav-link:hover span {
-    color: #0056b3 !important;
-}
-
-/* Add spacing between nav items */
-.navbar-nav .nav-item {
-    margin: 0 5px; /* Add margin around each nav item */
-}
-
-/* Ensure dropdown menu has enough space */
+/* Style the dropdown menu */
 .dropdown-menu {
-    min-width: 200px; /* Make dropdown wider */
-    margin-top: 10px; /* Add space between dropdown and toggle */
-    padding: 8px 0; /* Add more padding to top and bottom of dropdown */
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.dropdown-item {
+    padding: 0.5rem 1.5rem;
+}
+
+    .dropdown-item:hover {
+        background-color: rgba(0, 123, 255, 0.1);
+    }
+
+/* Responsive fixes for mobile */
+@media (max-width: 576px) {
+    .dropdown-menu {
+        width: 100%; /* Makes dropdown full width on mobile */
+    }
+
+    .navbar-nav .dropdown-menu {
+        position: static; /* Ensures dropdown appears below nav item on mobile */
+        float: none;
+    }
 }
 
 /* Toast notification styling */
@@ -493,3 +496,4 @@ body {
         box-shadow: 0 0 0 0 rgba(220, 53, 69, 0);
     }
 }
+
